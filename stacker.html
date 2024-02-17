@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=480, user-scalable=no" />
+    <title>Basic Sandwich Stacker</title>
+    <style>
+      html,
+      body {
+        max-width: 100%;
+        height: 100%;
+        overflow-x: hidden;
+        overflow-y: hidden;
+        position: fixed;
+      }
+      canvas {
+        display: block;
+        margin: 0 auto;
+        background-color: #f0f0f0;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="gameCanvas" width="480" height="600"></canvas>
+    <script>
+      const canvas = document.getElementById("gameCanvas");
+      const ctx = canvas.getContext("2d");
+
+      const stackerImg = new Image();
+      stackerImg.src = "player.png"; // dogwifhat
+
+      const ingredientImg = new Image();
+      ingredientImg.src = "hat.png"; // hat
+
+      const badItemImg = new Image();
+      badItemImg.src = "gordo.png"; // Replace with your desired bad item image
+
+      let stacker = { x: canvas.width / 2, y: canvas.height - 50 };
+      let ingredients = {
+        falling: [],
+        stacked: [],
+      };
+
+      let badItems = [];
+      let score = 0;
+
+      function drawStacker() {
+        ctx.drawImage(stackerImg, stacker.x, stacker.y);
+      }
+
+      function drawIngredients() {
+        ingredients.falling.forEach((ingredient) => {
+          ctx.drawImage(ingredientImg, ingredient.x, ingredient.y);
+        });
+
+        ingredients.stacked.forEach((ingredient) => {
+          ctx.drawImage(ingredientImg, ingredient.x, ingredient.y);
+        });
+      }
+
+      function drawBadItems() {
+        badItems.forEach((badItem) => {
+          ctx.drawImage(badItemImg, badItem.x, badItem.y);
+        });
+      }
+
+      let ickScore = 0;
+
+      function drawScore() {
+        ctx.font = "16px Arial";
+        ctx.fillStyle = "black";
+        ctx.fillText("Score: " + score, 8, 20);
+        ctx.fillText("Icks: " + ickScore, 8, 40);
+      }
+
+      function spawnIngredient() {
+        const x = Math.random() * (canvas.width - ingredientImg.width);
+        ingredients.falling.push({ x, y: -ingredientImg.height });
+      }
+
+      function spawnBadItem() {
+        const x = Math.random() * (canvas.width - badItemImg.width);
+        badItems.push({ x, y: -badItemImg.height });
+      }
+
+      function moveIngredients() {
+        ingredients.falling.forEach((ingredient) => {
+          ingredient.y += 4;
+        });
+
+        ingredients.stacked.forEach((ingredient, index) => {
+          ingredient.x = stacker.x;
+          ingredient.y = stacker.y - ingredientImg.height * (index + 1);
+        });
+      }
+
+      function moveBadItems() {
+        badItems.forEach((badItem) => {
+          badItem.y += 2;
+        });
+      }
+
+      function checkCollisions() {
+        ingredients.falling.forEach((ingredient, index) => {
+          if (
+            ingredient.y + ingredientImg.height >=
+              stacker.y - ingredientImg.height * score &&
+            ingredient.x + ingredientImg.width >= stacker.x &&
+            ingredient.x <= stacker.x + stackerImg.width
+          ) {
+            ingredients.falling.splice(index, 1);
+            ingredients.stacked.push({
+              x: stacker.x,
+              y: stacker.y - ingredientImg.height * (score + 1),
+            });
+            score++;
+          }
+        });
+
+        badItems.forEach((badItem, index) => {
+          if (
+            badItem.y + badItemImg.height >= stacker.y &&
+            badItem.x + badItemImg.width >= stacker.x &&
+            badItem.x <= stacker.x + stackerImg.width
+          ) {
+            badItems.splice(index, 1);
+            ickScore++;
+
+            if (ickScore >= 3) {
+              alert("Game over! Your score is: " + score);
+              location.reload(); // Restart the game
+            }
+          }
+        });
+      }
+
+      function removeOffscreenItems() {
+        ingredients.falling = ingredients.falling.filter(
+          (ingredient) => ingredient.y < canvas.height
+        );
+        badItems = badItems.filter((badItem) => badItem.y < canvas.height);
+      }
+
+      function gameLoop() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        if (Math.random() < 0.02) spawnIngredient();
+        if (Math.random() < 0.01) spawnBadItem();
+
+        moveIngredients();
+        moveBadItems();
+        checkCollisions();
+        removeOffscreenItems();
+
+        drawIngredients();
+        drawBadItems();
+        drawStacker();
+        drawScore();
+
+        requestAnimationFrame(gameLoop);
+      }
+
+      function updatePosition(e) {
+        let clientX;
+        if (e.type === "touchmove") {
+          clientX = e.touches[0].clientX;
+        } else {
+          clientX = e.clientX;
+        }
+        stacker.x =
+          clientX - canvas.getBoundingClientRect().left - stackerImg.width / 2;
+      }
+
+      canvas.addEventListener("mousemove", updatePosition);
+      canvas.addEventListener("touchmove", updatePosition);
+
+      gameLoop();
+
+      window.addEventListener("scroll", (e) => {
+        e.preventDefault();
+        window.scrollTo(0, 0);
+      });
+    </script>
+  </body>
+</html>
